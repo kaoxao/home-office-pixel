@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shophouse HQ v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0b18;--panel:#141428;--card:#0e0e20;--edge:#4a1a2c;--line:#22223a;--txt:#eae0d0;--dim:#8a8aa0;--warm:#ffd37a;--cyan:#4fc1c6;--red:#d8363a;--ol:#140b10;--blue:#2f72e0}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:'DotGothic16',monospace;overflow:hidden}
+#app{display:flex;gap:14px;align-items:flex-start;justify-content:center;padding:12px;height:100%}
+#stage{position:relative;line-height:0;outline:2px solid var(--ol);box-shadow:0 0 0 4px var(--line);flex:none;background:#141428}
+#cv{display:block;image-rendering:crisp-edges;image-rendering:pixelated}
+#bubbles{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.bubble{position:absolute;transform:translate(-50%,-100%);background:var(--txt);color:var(--ol);font-family:'DotGothic16',monospace;
+  font-size:13px;line-height:1.25;padding:3px 7px 4px;border:2px solid var(--ol);white-space:nowrap;box-shadow:3px 3px 0 var(--ol);z-index:2}
+.bubble::after{content:'';position:absolute;left:calc(50% - 4px);bottom:-8px;width:6px;height:6px;background:var(--txt);border:2px solid var(--ol);border-top:0;border-left:0}
+#fatal[hidden]{display:none}
+#fatal{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:16px;line-height:1.5;text-align:center;padding:20px}
+#panel{width:262px;flex:none;max-height:calc(100vh - 24px);overflow:auto;background:var(--panel);border:2px solid var(--ol);
+  box-shadow:0 0 0 2px var(--edge),4px 4px 0 2px var(--ol);padding:10px 10px 12px;font-size:13px}
+.ph{display:flex;align-items:center;gap:7px;font-family:'Press Start 2P',monospace;color:var(--warm);font-size:9px;letter-spacing:0;white-space:nowrap;line-height:1.4}
+.ph small{font-family:'DotGothic16',monospace;color:var(--dim);font-size:11px;margin-left:auto;letter-spacing:0}
+.led{width:8px;height:8px;background:var(--red);box-shadow:0 0 0 2px var(--edge);flex:none}
+.sec{color:var(--dim);font-size:11px;margin:10px 0 4px;letter-spacing:1px}
+.clock{margin-top:8px;background:var(--card);border:2px solid var(--line);padding:8px}
+.phrow{display:flex;align-items:center;gap:8px}
+.phjp{font-size:30px;line-height:1;color:var(--warm);width:36px;text-align:center}
+.phth{font-size:15px}.phen{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dim);margin-top:3px}
+.phsec{margin-left:auto;font-family:'Press Start 2P',monospace;font-size:10px;color:var(--cyan)}
+.bar{height:8px;margin-top:8px;background:#1b1b33;border:2px solid var(--ol);position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--warm);width:0}
+.ticks{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:2px;font-family:'Press Start 2P',monospace}
+.ctl{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+button{all:unset;cursor:pointer;box-sizing:border-box;background:#1b1b33;border:2px solid var(--line);padding:3px 6px;font-size:12px;color:var(--txt);font-family:'DotGothic16',monospace;text-align:center}
+button:hover{border-color:var(--warm);color:var(--warm)}
+button.on{border-color:var(--warm);color:var(--ol);background:var(--warm)}
+button:focus-visible{outline:2px solid var(--cyan)}
+#btnPause{width:34px;font-size:12px}
+.ctl .ph3{flex:1}
+.ctl .tog{flex:1}
+.flist{display:grid;gap:4px}
+.flist button{display:flex;align-items:center;gap:6px;text-align:left;padding:4px 6px}
+.flist .n{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--warm);width:24px}
+.flist button.on .n{color:var(--ol)}
+.flist .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flist .tag{font-size:9px;padding:0 4px;border:1px solid var(--dim);color:var(--dim)}
+.flist .tag.ok{border-color:#4f9a5a;color:#7fd08a}
+.flist button.on .tag{border-color:var(--ol);color:var(--ol)}
+.flist .el{width:10px;color:var(--cyan);font-size:11px}
+.flist button.on .el{color:var(--ol)}
+.card{background:var(--card);border:2px solid var(--line);padding:8px;min-height:96px;margin-top:8px}
+.fl{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--warm);line-height:1}
+.jp{color:var(--cyan);font-size:12px;margin-top:4px}
+.fname{margin-top:4px;font-size:14px}
+.fdesc{margin-top:3px;color:var(--dim);font-size:12px;line-height:1.35}
+.obj{margin:8px 0 0;min-height:34px;font-size:12px;border-left:4px solid var(--edge);padding:2px 6px;line-height:1.35}
+.obj b{color:var(--warm);font-weight:normal}
+.elev{font-size:11px;color:var(--dim);margin-top:4px}
+.elev b{color:var(--cyan);font-weight:normal}
+.log{font-size:11px;color:var(--dim);line-height:1.45;min-height:60px}
+.log div:first-child{color:var(--txt)}
+.foot{margin-top:8px;font-size:10px;color:var(--dim);line-height:1.4;border-top:2px solid var(--line);padding-top:6px}
+/* รอบ 6: pop-up Trading Terminal (ชั้น 2) — iframe ครอบ terminal.html */
+#modal{position:fixed;inset:0;background:rgba(5,5,16,.78);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+#modal[hidden]{display:none}
+.mbox{width:min(1100px,100%);height:min(760px,100%);display:flex;flex-direction:column;background:var(--panel);border:2px solid var(--ol);box-shadow:0 0 0 3px var(--edge),8px 8px 0 3px var(--ol)}
+.mhead{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:2px solid var(--line);font-family:'Press Start 2P',monospace;font-size:10px;color:var(--warm)}
+.mhead small{font-family:'DotGothic16',monospace;font-size:12px;color:var(--dim);letter-spacing:0}
+.mhead .sp{flex:1}
+.mhead button{font-size:12px;padding:3px 8px}
+#mFrame{flex:1;border:0;background:var(--bg);width:100%}
+#btnTerm{width:100%;margin-top:6px;border-color:var(--cyan);color:var(--cyan);font-family:'Press Start 2P',monospace;font-size:9px;padding:7px 6px}
+#btnTerm:hover{background:var(--cyan);color:var(--ol)}
+@media (max-width:760px){html,body{overflow:auto}#app{flex-direction:column;align-items:center;height:auto}#panel{width:100%;max-width:420px;max-height:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage"><canvas id="cv" width="520" height="872"></canvas><div id="bubbles"></div><div id="fatal" hidden></div></div>
+  <aside id="panel">
+    <div class="ph"><span class="led" id="led"></span>SHOPHOUSE HQ<small>居酒屋ビル v2</small></div>
+
+    <div class="clock">
+      <div class="phrow">
+        <div class="phjp" id="phJP">朝</div>
+        <div><div class="phth" id="phTH">เช้า</div><div class="phen" id="phEN">MORNING</div></div>
+        <div class="phsec" id="phSec">00s</div>
+      </div>
+      <div class="bar"><i id="bar"></i></div>
+      <div class="ticks"><span>0</span><span>30</span><span>60s</span></div>
+      <div class="ctl">
+        <button id="btnPause" title="หยุด/เล่นเวลา (P)">⏸</button>
+        <button class="ph3" data-ph="morning">朝 เช้า</button>
+        <button class="ph3" data-ph="evening">夕 เย็น</button>
+        <button class="ph3" data-ph="night">夜 คืน</button>
+      </div>
+      <div class="ctl">
+        <button class="tog" id="btnSnow" title="หิมะ (S)">❄ หิมะ ON</button>
+        <button class="tog" id="btnXray" title="ชั้นบนโปร่งเมื่อเลือกชั้น (X)">X-RAY ON</button>
+        <button class="tog" id="btnFw" title="พลุ (F)">🎆 花火 ON</button>
+        <button class="tog" id="btnWind" title="ลม (W)">🍃 ลม ON</button>
+      </div>
+    </div>
+
+    <div class="sec">ELEVATOR · กดเพื่อส่งลิฟต์ + ไฮไลต์</div>
+    <div class="flist" id="flist"></div>
+    <div class="elev" id="elev">ลิฟต์: <b>1F</b> ประตูเปิด</div>
+    <button id="btnTerm" title="เปิดหน้า Trading Terminal ของชั้น 2 (T)">📈 TRADING TERMINAL · 2F</button>
+
+    <div class="card">
+      <div class="fl" id="flNum">--</div>
+      <div class="jp" id="flJp">&nbsp;</div>
+      <div class="fname" id="flName">ชี้เมาส์ที่ชั้นไหนก็ได้</div>
+      <div class="fdesc" id="flDesc">แผงนี้โชว์ชื่อห้อง + คำอธิบาย ของชั้นที่เมาส์ชี้</div>
+    </div>
+    <div class="obj" id="objLine">ของที่คลิกได้จะมีกรอบเหลือง</div>
+
+    <div class="sec">EVENT LOG</div>
+    <div class="log" id="log"></div>
+    <div class="foot">คีย์ลัด: 1-5 ส่งลิฟต์ · P หยุดเวลา · S หิมะ · F พลุ · W ลม · X x-ray · G กริดพิกัด · T terminal</div>
+  </aside>
+</div>
+<div id="modal" hidden>
+  <div class="mbox">
+    <div class="mhead">📈 TRADING TERMINAL · 2F <small>ออฟฟิศเทรด · ตอนนี้ข้อมูล demo — ต่อบอทจริงได้ที่ท้ายหน้า</small><span class="sp"></span>
+      <button id="mPop" title="เปิดในแท็บใหม่">⧉ แท็บใหม่</button><button id="mClose" title="ปิด (Esc)">✕ ปิด</button></div>
+    <iframe id="mFrame" title="Trading Terminal"></iframe>
+  </div>
+</div>
+<script>
+'use strict';
+/* โหลดไฟล์ตามลำดับ — ไฟล์ไหนยังไม่มี (404) ก็ข้ามไป core จะใส่ห้อง placeholder ให้ */
+const QS = new URLSearchParams(location.search);
+const SKIP = (QS.get('skip') || '').split(',').filter(Boolean);        // ทดสอบ: ?skip=sprites_people.js,floor1.js
+const SRC = ['core.js','sprites_people.js','sprites_items.js','floor1.js','floor2.js','floor3.js','floor4.js','floor5.js'].filter(f => f === 'core.js' || !SKIP.includes(f));
+const LOADED = [], MISSING = [];
+function loadSeq(i){
+  if (i >= SRC.length) return start();
+  const s = document.createElement('script');
+  s.src = SRC[i] + '?v=' + Date.now();          // รอบ 6: กัน browser cache ไฟล์ชั้นเก่า (แก้โค้ดแล้วรีโหลดเห็นทันที)
+  s.onload = () => { LOADED.push(SRC[i]); loadSeq(i+1); };
+  s.onerror = () => { MISSING.push(SRC[i]); s.remove(); loadSeq(i+1); };
+  document.body.appendChild(s);
+}
+const $ = id => document.getElementById(id);
+const PH = {morning:{jp:'朝',th:'เช้า',en:'MORNING'}, evening:{jp:'夕',th:'เย็น',en:'EVENING'}, night:{jp:'夜',th:'กลางคืน',en:'NIGHT'}};
+
+function start(){
+  if (!window.Core){ const f = $('fatal'); f.hidden = false; f.textContent = 'โหลด core.js ไม่ได้ — ตรวจว่าไฟล์อยู่ใน v2/'; return; }
+  const cv = $('cv');
+  if (QS.get('selftest') === '1') selfTest();
+  Core.boot({canvas:cv, bubbles:$('bubbles')});
+  if (MISSING.length) Core.log('ไฟล์ที่ยังไม่มา: '+MISSING.join(', '));
+  applyScale(); addEventListener('resize', applyScale);
+  initPanel();
+  initTerminal();
+}
+
+/* ---------- รอบ 6: pop-up Trading Terminal (ชั้น 2) ----------
+ * window.openTerminal(src?) — floor2.js เรียกเมื่อคลิกบอร์ดราคา/จอผนัง · ปุ่มในแผง · คีย์ T · ปิดด้วย Esc / ปุ่ม / คลิกพื้นหลัง
+ * iframe โหลดครั้งแรกตอนเปิด (ไม่โหลดตอน start) และค้างไว้เพื่อให้ตัวเลข demo เดินต่อ */
+function initTerminal(){
+  const m = $('modal'), fr = $('mFrame'), SRC = 'terminal.html' + (QS.get('feed') ? '?feed=' + encodeURIComponent(QS.get('feed')) : '');
+  window.openTerminal = src => { const s = src || SRC; if (fr.getAttribute('src') !== s) fr.src = s; m.hidden = false; Core.log('เปิด Trading Terminal 2F'); };
+  window.closeTerminal = () => { if (m.hidden) return; m.hidden = true; Core.log('ปิด Trading Terminal'); };
+  $('btnTerm').onclick = () => openTerminal();
+  $('mClose').onclick = closeTerminal;
+  $('mPop').onclick = () => window.open(fr.getAttribute('src') || SRC, '_blank');
+  m.addEventListener('click', e => { if (e.target === m) closeTerminal(); });
+  addEventListener('keydown', e => { if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return; if (e.key === 'Escape') closeTerminal(); else if (e.key === 't' || e.key === 'T'){ m.hidden ? openTerminal() : closeTerminal(); } });
+}
+
+/* ---------- สเกลให้ทั้งตึกพอดีจอ (ถ้าได้ ≥2 เท่า ปัดเป็นจำนวนเต็ม) ---------- */
+function applyScale(){
+  const W = Core.W, H = Core.H, narrow = innerWidth < 760;
+  const availW = narrow ? innerWidth - 32 : innerWidth - 262 - 14 - 36;
+  const availH = narrow ? (innerHeight - 32) : innerHeight - 28;
+  let s = Math.min(availW / W, availH / H);
+  if (s >= 2) s = Math.floor(s);
+  s = Math.max(0.4, s);
+  const cv = $('cv'); cv.style.width = Math.round(W*s)+'px'; cv.style.height = Math.round(H*s)+'px';
+  document.documentElement.style.setProperty('--scale', s);
+}
+
+/* ---------- แผงควบคุม ---------- */
+function initPanel(){
+  // เฟรมเวลา
+  const phBtns = [...document.querySelectorAll('[data-ph]')];
+  phBtns.forEach(b => b.onclick = () => Core.setPhase(b.dataset.ph));
+  $('btnPause').onclick = () => Core.pause();
+  const syncToggles = () => {
+    $('btnSnow').textContent = '❄ หิมะ ' + (Core.snow ? 'ON' : 'OFF'); $('btnSnow').classList.toggle('on', Core.snow);
+    $('btnXray').textContent = 'X-RAY ' + (Core.xray ? 'ON' : 'OFF'); $('btnXray').classList.toggle('on', Core.xray);
+    $('btnWind').textContent = '🍃 ลม ' + (Core.wind ? 'ON' : 'OFF'); $('btnWind').classList.toggle('on', Core.wind);
+    $('btnFw').textContent = '🎆 花火 ' + (Core.fireworks ? 'ON' : 'OFF'); $('btnFw').classList.toggle('on', Core.fireworks);
+    $('btnPause').textContent = Core.time.paused ? '▶' : '⏸'; $('btnPause').classList.toggle('on', Core.time.paused);
+  };
+  $('btnSnow').onclick = () => { Core.snow = !Core.snow; Core.log('หิมะ '+(Core.snow?'ON':'OFF')); syncToggles(); };
+  $('btnXray').onclick = () => { Core.xray = !Core.xray; Core.log('X-RAY '+(Core.xray?'ON':'OFF')); syncToggles(); };
+  $('btnWind').onclick = () => { Core.wind = !Core.wind; Core.log('ลม '+(Core.wind?'ON':'OFF')); syncToggles(); };
+  $('btnFw').onclick = () => { Core.fireworks = !Core.fireworks; Core.log('พลุ '+(Core.fireworks?'ON':'OFF')); syncToggles(); };
+  Core.on('toggle', syncToggles); Core.on('pause', syncToggles);
+  syncToggles();
+
+  // ปุ่มชั้น 5F..1F
+  const fl = $('flist'), btns = {};
+  for (let n = 5; n >= 1; n--){
+    const m = Core.floors[n-1], b = document.createElement('button');
+    b.innerHTML = `<span class="el"></span><span class="n">${n}F</span><span class="nm">${m.name}</span><span class="tag ${m.placeholder?'':'ok'}">${m.placeholder?'placeholder':'OK'}</span>`;
+    b.title = m.desc;
+    b.onclick = () => { SceneAPI.highlight(n); Core.elevator.goTo(n); };
+    b.onmouseenter = () => panelFloor(n); b.onmouseleave = () => panelFloor(Core._internal.S.hoverFloor || Core._internal.S.hl);
+    fl.appendChild(b); btns[n] = b;
+  }
+  const syncFloors = () => { const S = Core._internal.S, e = Core.elevator;
+    for (let n = 1; n <= 5; n++){ btns[n].classList.toggle('on', S.hl === n); btns[n].querySelector('.el').textContent = (e.at === n) ? (e.dir ? (e.dir > 0 ? '▲' : '▼') : '■') : ''; } };
+  Core.on('highlight', f => { syncFloors(); panelFloor(f); });
+
+  // ชั้น/ของที่เมาส์ชี้
+  function panelFloor(f){
+    const m = f ? Core.floors[f-1] : null;
+    $('flNum').textContent = m ? f+'F' : '--';
+    $('flJp').textContent = m ? m.nameJP : ' ';
+    $('flName').textContent = m ? m.name + (m.placeholder ? '  (placeholder)' : '') : 'ชี้เมาส์ที่ชั้นไหนก็ได้';
+    $('flDesc').textContent = m ? m.desc : 'แผงนี้โชว์ชื่อห้อง + คำอธิบาย ของชั้นที่เมาส์ชี้';
+  }
+  SceneAPI.onHover(f => panelFloor(f || Core._internal.S.hl));
+  Core.on('hoverObj', o => {
+    $('objLine').innerHTML = o ? `<b>▶ ${esc(o.label||o.id)}</b><br>${esc(o.hint||'คลิกได้')}` : 'ของที่คลิกได้จะมีกรอบเหลือง';
+  });
+  SceneAPI.onClick(id => { const o = Core.find(id); if (o && !/^ph_lamp|^elevator$|^street_/.test(id)) Core.log('คลิก '+(o.label||id)); });
+
+  // log
+  const renderLog = (line, all) => { $('log').innerHTML = (all || Core.getLog()).slice(0,6).map(x => `<div>${esc(x)}</div>`).join(''); };
+  Core.on('log', renderLog); renderLog();
+
+  // นาฬิกา + สถานะลิฟต์ (ทุกเฟรม)
+  let lastPh = null;
+  Core.on('frame', t => {
+    const p = PH[t.phase];
+    if (t.phase !== lastPh){ lastPh = t.phase; $('phJP').textContent = p.jp; $('phTH').textContent = p.th; $('phEN').textContent = p.en; phBtns.forEach(b => b.classList.toggle('on', b.dataset.ph === t.phase)); }
+    $('phSec').textContent = String(Math.floor(t.sec)).padStart(2,'0') + 's' + (t.paused ? ' ⏸' : '');
+    $('bar').style.width = (t.t*100).toFixed(1) + '%';
+    const e = Core.elevator;
+    const st = e.mode === 'moving' ? (e.dir > 0 ? 'กำลังขึ้น ▲ ' : 'กำลังลง ▼ ') + '→ ' + e.target + 'F' : e.mode === 'open' ? 'ประตูเปิด' : e.mode === 'opening' ? 'ประตูกำลังเปิด' : e.mode === 'closing' ? 'ประตูกำลังปิด' : 'ประตูปิด';
+    $('elev').innerHTML = `ลิฟต์: <b>${e.mode === 'moving' ? e.pos.toFixed(1) : e.at}F</b> ${st}`;
+    syncFloors();
+    $('led').style.opacity = (Math.floor(Core.t*2) % 2) ? 1 : .35;
+  });
+}
+/* ?selftest=1 : จำลองไฟล์ชั้นที่พัง เพื่อเช็คว่า core ไม่ล่ม (ชั้น 2 build throw / ชั้น 3 draw throw / ชั้น 4 sprite หาย) */
+function selfTest(){
+  FLOORS[2] = { name:'TEST build พัง', build(){ throw new Error('selftest: build error'); } };
+  FLOORS[3] = { name:'TEST draw พัง', desc:'object 1 ตัว draw() throw', build(F){ return [
+    { id:'t3_bad', label:'ของพัง', ...F.boxBBox(0.7,0.7,0,10,10,10), draw(){ throw new Error('selftest: draw error'); } },
+    { id:'t3_ok', label:'กล่องปกติ', hint:'คลิกได้', ...F.boxBBox(0.55,0.75,0,14,10,16), draw(){ Core.isoBox(0.55,0.75,0,14,10,16,'#4fc1c6'); }, onClick(){ Core.bubble('t3_ok','ยังทำงาน',1200); } } ]; } };
+  FLOORS[4] = { name:'TEST sprite หาย', build(F){ return [
+    { id:'t4_sp', label:'sprite ที่ไม่มีจริง', ...F.spriteBBox(undefined,0.75,0.7), draw(){ Core.drawSprite((window.SPR_PEOPLE||{}).nope, 0.75,0.7, 0); }, onClick(){} } ]; } };
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+
+loadSeq(0);
+</script>
+</body>
+</html>

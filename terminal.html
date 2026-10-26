@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trading Terminal 2F</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* ---------------------------------------------------------------------------
+   terminal.html — หน้า Trading Terminal ของชั้น 2 (เปิดเป็น pop-up จาก index.html หรือเปิดเดี่ยวก็ได้)
+   แหล่งข้อมูล (เลือกอย่างแรกที่เจอ): ?feed=URL → localStorage['terminal_feed'] → ./terminal_demo.json
+   บอทจริงแค่เขียนไฟล์ JSON ตาม schema "shophouse-terminal/1" (ดูท้ายหน้า) หน้าจะดึงใหม่ทุก ?every=วินาที (ค่าเริ่ม 5)
+   --------------------------------------------------------------------------- */
+:root{--bg:#0b0b18;--panel:#141428;--card:#0e0e20;--edge:#4a1a2c;--line:#22223a;--txt:#eae0d0;--dim:#8a8aa0;--warm:#ffd37a;--cyan:#4fc1c6;--red:#ff6f6f;--grn:#5fe39a;--ol:#140b10}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--txt);font-family:'DotGothic16',monospace;font-size:13px}
+body{padding:12px}
+.hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:2px solid var(--ol);box-shadow:0 0 0 2px var(--edge);padding:8px 10px}
+.hd h1{margin:0;font-family:'Press Start 2P',monospace;font-size:11px;color:var(--warm);display:flex;align-items:center;gap:8px}
+.led{width:8px;height:8px;background:var(--red);box-shadow:0 0 0 2px var(--edge)}
+.led.on{background:var(--grn)}
+.badge{font-family:'Press Start 2P',monospace;font-size:8px;padding:4px 6px;border:2px solid var(--line);color:var(--dim)}
+.badge.live{border-color:var(--grn);color:var(--grn)}.badge.paper{border-color:var(--cyan);color:var(--cyan)}.badge.demo{border-color:var(--warm);color:var(--warm)}.badge.off{border-color:var(--red);color:var(--red)}
+.hd .meta{margin-left:auto;color:var(--dim);font-size:11px;text-align:right;line-height:1.4}
+.hd .meta b{color:var(--txt);font-weight:normal}
+.kpi{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}
+.tile{background:var(--card);border:2px solid var(--line);padding:8px}
+.tile .l{color:var(--dim);font-size:10px;letter-spacing:1px}
+.tile .v{font-family:'Press Start 2P',monospace;font-size:13px;margin-top:6px;color:var(--txt);white-space:nowrap}
+.tile .s{font-size:11px;color:var(--dim);margin-top:4px}
+.up{color:var(--grn)!important}.dn{color:var(--red)!important}
+.grid{display:grid;grid-template-columns:3fr 2fr;gap:8px;margin-top:8px}
+.box{background:var(--card);border:2px solid var(--line);padding:8px;min-height:120px}
+.box h2{margin:0 0 6px;font-family:'Press Start 2P',monospace;font-size:8px;color:var(--cyan);letter-spacing:0}
+canvas#eq{display:block;width:100%;height:170px;image-rendering:pixelated;background:#0a0d1a;border:2px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--dim);font-weight:normal;text-align:left;border-bottom:2px solid var(--line);padding:3px 4px;font-size:10px;letter-spacing:1px}
+td{padding:4px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.r,th.r{text-align:right}
+.side{font-family:'Press Start 2P',monospace;font-size:8px;padding:2px 4px}
+.side.LONG{background:#163a2a;color:var(--grn)}.side.SHORT{background:#3a1620;color:var(--red)}
+.sig{display:grid;gap:4px;max-height:220px;overflow:auto}
+.sig div{display:flex;gap:8px;align-items:baseline;border-left:4px solid var(--line);padding:2px 6px;line-height:1.35}
+.sig .t{color:var(--dim);font-size:10px;min-width:92px}
+.sig .a{font-family:'Press Start 2P',monospace;font-size:8px;min-width:36px}
+.sig .BUY{color:var(--grn);border-color:var(--grn)}.sig .SELL{color:var(--red)}.sig .SKIP{color:var(--dim)}
+.watch{display:flex;gap:6px;flex-wrap:wrap}
+.wt{flex:1;min-width:90px;background:var(--panel);border:2px solid var(--line);padding:6px 8px}
+.wt .s{color:var(--dim);font-size:10px;letter-spacing:1px}.wt .p{font-family:'Press Start 2P',monospace;font-size:9px;margin-top:4px}.wt .c{font-size:11px;margin-top:2px}
+.foot{margin-top:8px;background:var(--panel);border:2px solid var(--line);padding:8px 10px;color:var(--dim);font-size:11px;line-height:1.5}
+.foot b{color:var(--txt);font-weight:normal}
+.foot code{color:var(--warm);font-family:'DotGothic16',monospace}
+.foot details{margin-top:4px}
+.foot pre{margin:6px 0 0;font-size:10px;line-height:1.4;color:#b8b0c8;background:#0a0d1a;border:1px solid var(--line);padding:6px;overflow:auto;max-height:200px}
+.conn{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.conn input{flex:1;min-width:200px;background:#0a0d1a;border:2px solid var(--line);color:var(--txt);font-family:'DotGothic16',monospace;font-size:12px;padding:4px 6px}
+button{all:unset;cursor:pointer;background:#1b1b33;border:2px solid var(--line);padding:4px 8px;font-size:12px;color:var(--txt);font-family:'DotGothic16',monospace}
+button:hover{border-color:var(--warm);color:var(--warm)}
+@media (max-width:760px){.kpi{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="hd">
+  <h1><span class="led" id="led"></span>TRADING TERMINAL · 2F</h1>
+  <span class="badge" id="mode">…</span>
+  <span id="botName" style="color:var(--dim)">กำลังโหลด…</span>
+  <div class="meta"><div>อัปเดต <b id="upd">--</b></div><div>แหล่ง <b id="src">--</b></div></div>
+</div>
+
+<div class="kpi">
+  <div class="tile"><div class="l">EQUITY</div><div class="v" id="kEq">--</div><div class="s" id="kEqS">&nbsp;</div></div>
+  <div class="tile"><div class="l">TODAY P/L</div><div class="v" id="kDay">--</div><div class="s" id="kDayS">&nbsp;</div></div>
+  <div class="tile"><div class="l">OPEN P/L</div><div class="v" id="kOpen">--</div><div class="s" id="kOpenS">&nbsp;</div></div>
+  <div class="tile"><div class="l">WIN RATE</div><div class="v" id="kWin">--</div><div class="s" id="kWinS">&nbsp;</div></div>
+  <div class="tile"><div class="l">MAX DD</div><div class="v" id="kDD">--</div><div class="s">จากยอดสูงสุด</div></div>
+  <div class="tile"><div class="l">STATUS</div><div class="v" id="kSt">--</div><div class="s" id="kStS">&nbsp;</div></div>
+</div>
+
+<div class="grid">
+  <div class="box"><h2>EQUITY CURVE · 30 วัน</h2><canvas id="eq" width="420" height="170"></canvas></div>
+  <div class="box"><h2>WATCHLIST</h2><div class="watch" id="watch"></div></div>
+  <div class="box"><h2>OPEN POSITIONS</h2>
+    <table><thead><tr><th>SYM</th><th>SIDE</th><th class="r">QTY</th><th class="r">ENTRY</th><th class="r">MARK</th><th class="r">SL</th><th class="r">P/L</th></tr></thead><tbody id="pos"></tbody></table>
+  </div>
+  <div class="box"><h2>SIGNALS · BOT LOG</h2><div class="sig" id="sig"></div></div>
+</div>
+
+<div class="foot">
+  <b>ต่อบอทจริงยังไง:</b> ให้บอทเขียนไฟล์ JSON ตาม schema <code>shophouse-terminal/1</code> แล้วชี้หน้านี้ไปที่ไฟล์นั้น —
+  ใส่ <code>?feed=URL</code> ท้ายลิงก์ หรือพิมพ์ URL ข้างล่างแล้วกดบันทึก (เก็บใน localStorage ของเบราว์เซอร์นี้) · ดึงใหม่ทุก <code id="every">5</code> วิ ·
+  ถ้าดึงไม่ได้จะโชว์ข้อมูลเดิมพร้อมป้าย OFFLINE · ตอนนี้ยังไม่มีบอท → ใช้ <code>terminal_demo.json</code> (ป้าย DEMO ตัวเลขขยับเอง)
+  <div class="conn"><input id="feedIn" placeholder="เช่น http://127.0.0.1:8790/state.json หรือ ./terminal_demo.json"><button id="feedSave">บันทึก feed</button><button id="feedReset">กลับไปใช้ demo</button><button id="reload">ดึงตอนนี้</button></div>
+  <details><summary>schema ที่บอทต้องเขียน (คลิกดู)</summary><pre id="schema"></pre></details>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const QS = new URLSearchParams(location.search);
+const EVERY = Math.max(2, +QS.get('every') || 5);
+const DEMO_URL = './terminal_demo.json';
+let feedUrl = QS.get('feed') || localStorage.getItem('terminal_feed') || DEMO_URL;
+let DATA = null, lastOk = 0, isDemo = false, timer = null;
+$('every').textContent = EVERY; $('feedIn').value = feedUrl === DEMO_URL ? '' : feedUrl;
+
+const fmt = (v, d=2) => (v == null || isNaN(v)) ? '--' : Number(v).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+const sgn = v => (v > 0 ? '+' : '') + fmt(v);
+const cls = v => v > 0 ? 'up' : v < 0 ? 'dn' : '';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const tfmt = s => { const d = new Date(s); return isNaN(d) ? String(s ?? '--') : d.toLocaleString('th-TH', {hour12:false, day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}); };
+
+/* ---------- ดึงข้อมูล ---------- */
+async function load(){
+  try {
+    const r = await fetch(feedUrl + (feedUrl.includes('?') ? '&' : '?') + '_=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (!j || typeof j !== 'object') throw new Error('ไม่ใช่ JSON object');
+    DATA = j; lastOk = Date.now(); isDemo = !!j.demo;
+    if (isDemo) demoTick(DATA, true);
+    render('ok');
+  } catch (e){
+    if (!DATA){ DATA = demoSeed(); isDemo = true; render('ok'); $('src').textContent = 'สร้างในหน้า (ดึง ' + feedUrl + ' ไม่ได้: ' + e.message + ')'; }
+    else render('offline', e.message);
+  }
+}
+function schedule(){ clearInterval(timer); timer = setInterval(() => { if (isDemo && DATA){ demoTick(DATA, false); render('ok'); } else load(); }, EVERY*1000); }
+
+/* ---------- demo: random walk ให้ตัวเลขขยับ (ใช้ทั้งไฟล์ demo และตอนดึงไม่ได้ตั้งแต่แรก) ---------- */
+function demoSeed(){
+  const eq = [], base = 10000; let v = base; const d0 = Date.now() - 29*864e5;
+  for (let i = 0; i < 30; i++){ v = Math.max(8000, v + (Math.random() - .45)*80); eq.push({t:new Date(d0 + i*864e5).toISOString().slice(0,10), v:Math.round(v*10)/10}); }
+  return { schema:'shophouse-terminal/1', demo:true, updated:new Date().toISOString(), bot:{name:'DEMO bot (สร้างในหน้า)', mode:'paper', status:'running', exchange:'—'},
+    account:{currency:'USDT', start_equity:base, equity:v, today_pnl:v - eq[eq.length-2].v, open_pnl:35, max_dd_pct:6.5, win_rate:.4, trades:40},
+    equity_curve:eq, positions:[{sym:'BTCUSDT', side:'LONG', qty:.05, entry:67000, mark:67500, sl:64500, pnl:25, pnl_pct:.75, opened:new Date().toISOString()}],
+    signals:[{t:new Date().toISOString(), sym:'BTCUSDT', action:'BUY', price:67000, note:'demo'}], watch:[{sym:'BTC', price:67500, chg:.7},{sym:'ETH', price:3400, chg:-.4},{sym:'GOLD', price:2650, chg:.2}] };
+}
+function demoTick(d, first){
+  if (first && d._ticked) return; d._ticked = true;
+  const a = d.account = d.account || {};
+  (d.positions || []).forEach(p => { p.mark = +(p.mark*(1 + (Math.random() - .5)*.004)).toFixed(p.mark < 10 ? 4 : 2); const k = p.side === 'SHORT' ? -1 : 1; p.pnl = +((p.mark - p.entry)*p.qty*k).toFixed(2); p.pnl_pct = +((p.mark/p.entry - 1)*100*k).toFixed(2); });
+  a.open_pnl = +(d.positions || []).reduce((s, p) => s + (p.pnl || 0), 0).toFixed(2);
+  const eq = d.equity_curve || [];
+  if (eq.length){ const last = eq[eq.length-1]; const closed = (a.equity || last.v) - a.open_pnl; last.v = +(closed + a.open_pnl).toFixed(1); a.equity = last.v; a.today_pnl = +(last.v - (eq[eq.length-2] || last).v).toFixed(2); }
+  (d.watch || []).forEach(w => { const r = (Math.random() - .5)*.3; w.price = +(w.price*(1 + r/100)).toFixed(w.price < 10 ? 4 : w.price < 1000 ? 2 : 0); w.chg = +((w.chg || 0) + r).toFixed(2); });
+  d.updated = new Date().toISOString();
+}
+
+/* ---------- วาด ---------- */
+function render(state, err){
+  const d = DATA, b = d.bot || {}, a = d.account || {};
+  const mode = state === 'offline' ? 'off' : isDemo ? 'demo' : (b.mode === 'live' ? 'live' : 'paper');
+  const M = $('mode'); M.className = 'badge ' + mode; M.textContent = mode === 'off' ? 'OFFLINE' : mode.toUpperCase();
+  $('led').className = 'led' + (state === 'ok' && b.status === 'running' ? ' on' : '');
+  $('botName').textContent = (b.name || 'bot') + (b.exchange ? ' · ' + b.exchange : '') + (b.note ? ' · ' + b.note : '');
+  $('upd').textContent = tfmt(d.updated) + (state === 'offline' ? '  (ดึงใหม่ไม่ได้: ' + err + ')' : '');
+  $('src').textContent = feedUrl;
+  const cur = a.currency || '';
+  const ret = a.start_equity ? (a.equity/a.start_equity - 1)*100 : null;
+  $('kEq').textContent = fmt(a.equity, 1) + ' ' + cur; $('kEqS').textContent = ret == null ? ' ' : 'ตั้งแต่เริ่ม ' + sgn(ret) + '%'; $('kEqS').className = 's ' + cls(ret);
+  $('kDay').textContent = sgn(a.today_pnl); $('kDay').className = 'v ' + cls(a.today_pnl); $('kDayS').textContent = a.equity ? sgn(a.today_pnl/(a.equity - a.today_pnl)*100) + '%' : ' ';
+  $('kOpen').textContent = sgn(a.open_pnl); $('kOpen').className = 'v ' + cls(a.open_pnl); $('kOpenS').textContent = (d.positions || []).length + ' ไม้เปิดอยู่';
+  $('kWin').textContent = a.win_rate == null ? '--' : fmt(a.win_rate*100, 0) + '%'; $('kWinS').textContent = (a.trades ?? '--') + ' ไม้';
+  $('kDD').textContent = a.max_dd_pct == null ? '--' : '-' + fmt(a.max_dd_pct, 1) + '%'; $('kDD').className = 'v dn';
+  $('kSt').textContent = (b.status || '--').toUpperCase(); $('kSt').className = 'v ' + (b.status === 'running' ? 'up' : b.status === 'stopped' ? 'dn' : ''); $('kStS').textContent = (b.mode || '--') + ' · ทุก ' + EVERY + ' วิ';
+  drawEq(d.equity_curve || [], a.start_equity);
+  $('pos').innerHTML = (d.positions || []).map(p => `<tr><td>${esc(p.sym)}</td><td><span class="side ${esc(p.side)}">${esc(p.side)}</span></td><td class="r">${fmt(p.qty, 3)}</td><td class="r">${fmt(p.entry, p.entry < 10 ? 4 : 2)}</td><td class="r">${fmt(p.mark, p.mark < 10 ? 4 : 2)}</td><td class="r">${p.sl == null ? '--' : fmt(p.sl, p.sl < 10 ? 4 : 2)}</td><td class="r ${cls(p.pnl)}">${sgn(p.pnl)}<br><small>${sgn(p.pnl_pct)}%</small></td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--dim)">ไม่มีไม้เปิด</td></tr>';
+  $('sig').innerHTML = (d.signals || []).slice(0, 30).map(s => `<div class="${esc(s.action)}"><span class="t">${tfmt(s.t)}</span><span class="a ${esc(s.action)}">${esc(s.action)}</span><span>${esc(s.sym)} @ ${fmt(s.price, s.price < 10 ? 4 : 2)}</span><span style="color:var(--dim)">${esc(s.note)}</span></div>`).join('') || '<div style="color:var(--dim)">ยังไม่มีสัญญาณ</div>';
+  $('watch').innerHTML = (d.watch || []).map(w => `<div class="wt"><div class="s">${esc(w.sym)}</div><div class="p">${fmt(w.price, w.price < 10 ? 4 : w.price < 1000 ? 2 : 0)}</div><div class="c ${cls(w.chg)}">${sgn(w.chg)}%</div></div>`).join('');
+}
+function drawEq(eq, start){
+  const c = $('eq'), g = c.getContext('2d'), W = c.width, H = c.height; g.imageSmoothingEnabled = false;
+  g.fillStyle = '#0a0d1a'; g.fillRect(0, 0, W, H);
+  if (eq.length < 2) { g.fillStyle = '#8a8aa0'; g.font = '12px DotGothic16'; g.fillText('ยังไม่มีข้อมูล equity_curve', 10, 20); return; }
+  const vs = eq.map(e => +e.v), lo = Math.min(...vs, start || Infinity), hi = Math.max(...vs, start || -Infinity), pad = (hi - lo) || 1;
+  const X = i => Math.round(8 + i*(W - 16)/(eq.length - 1)), Y = v => Math.round(H - 14 - (v - lo)/pad*(H - 28));
+  g.fillStyle = '#1b1b33'; for (let k = 0; k < 5; k++) g.fillRect(8, Math.round(14 + k*(H - 28)/4), W - 16, 1);
+  if (start){ g.fillStyle = '#ffd37a'; for (let x = 8; x < W - 8; x += 6) g.fillRect(x, Y(start), 3, 1); }
+  const up = vs[vs.length-1] >= vs[0], col = up ? '#5fe39a' : '#ff6f6f';
+  g.fillStyle = up ? 'rgba(95,227,154,.12)' : 'rgba(255,111,111,.12)';
+  for (let i = 0; i < eq.length; i++){ const x = X(i), y = Y(vs[i]); g.fillRect(x, y, Math.max(1, X(Math.min(i+1, eq.length-1)) - x), H - 14 - y); }
+  g.fillStyle = col;
+  for (let i = 1; i < eq.length; i++){ const x0 = X(i-1), y0 = Y(vs[i-1]), x1 = X(i), y1 = Y(vs[i]); const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let k = 0; k <= n; k++) g.fillRect(Math.round(x0 + (x1 - x0)*k/n), Math.round(y0 + (y1 - y0)*k/n), 2, 2); }
+  g.fillStyle = '#eae0d0'; g.font = '10px "Press Start 2P"'; g.fillText(fmt(hi, 0), 10, 12); g.fillText(fmt(lo, 0), W - 8 - g.measureText(fmt(lo, 0)).width, H - 3);   // สูงสุดซ้ายบน · ต่ำสุดขวาล่าง
+  g.fillStyle = col; g.fillRect(X(eq.length-1) - 2, Y(vs[vs.length-1]) - 2, 5, 5);
+  g.fillStyle = '#8a8aa0'; g.font = '10px DotGothic16'; g.fillText(eq[0].t, 8, H - 3); const t1 = String(eq[eq.length-1].t); g.fillText(t1, W - 8 - g.measureText(t1).width, 12);   // วันแรกซ้ายล่าง · วันล่าสุดขวาบน
+}
+
+/* ---------- ปุ่ม ---------- */
+$('feedSave').onclick = () => { const v = $('feedIn').value.trim(); if (!v) return; localStorage.setItem('terminal_feed', v); feedUrl = v; DATA = null; isDemo = false; load().then(schedule); };
+$('feedReset').onclick = () => { localStorage.removeItem('terminal_feed'); feedUrl = DEMO_URL; $('feedIn').value = ''; DATA = null; load().then(schedule); };
+$('reload').onclick = () => load();
+$('schema').textContent = JSON.stringify({ schema:'shophouse-terminal/1', updated:'ISO datetime', bot:{name:'ชื่อบอท', mode:'live|paper', status:'running|stopped|error', exchange:'Binance', note:'ข้อความสั้น'},
+  account:{currency:'USDT', start_equity:10000, equity:10432.5, today_pnl:85.2, open_pnl:120.4, max_dd_pct:7.8, win_rate:0.41, trades:57},
+  equity_curve:[{t:'YYYY-MM-DD', v:10000}, '... (ไม่เกิน ~90 จุด)'],
+  positions:[{sym:'BTCUSDT', side:'LONG|SHORT', qty:0.05, entry:67120, mark:68210, sl:64800, pnl:54.5, pnl_pct:1.62, opened:'ISO datetime'}],
+  signals:[{t:'ISO datetime', sym:'ETHUSDT', action:'BUY|SELL|SKIP', price:3410, note:'เหตุผลสั้น ๆ'}],
+  watch:[{sym:'BTC', price:68210, chg:1.2}] }, null, 2);
+load().then(schedule);
+</script>
+</body>
+</html>
